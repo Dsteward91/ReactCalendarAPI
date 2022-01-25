@@ -24,6 +24,20 @@ class Month(db.Model):
         self.days_in_previous_month = days_in_previous_month
         self.start_day = start_day
 
+class Reminder(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    day = db.Column(db.Integer, nullable=False)
+    month = db.Column(db.String, nullable=False)
+    year = db.Column(db.String, nullable=False)
+    text = db.Column(db.String, nullable=False)
+
+    def __init__(self, day, mont, year, text):
+        self.day = day
+        self.month = month
+        self.year = year
+        self.text = text
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
