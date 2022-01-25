@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgres://itxuqhkooddblw:9f893945714a623478a73d2847e6344c2d6d2fc3cebdcd94bf7b90d438a50475@ec2-3-216-113-109.compute-1.amazonaws.com:5432/d7tug9k5e7akgn"
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://itxuqhkooddblw:9f893945714a623478a73d2847e6344c2d6d2fc3cebdcd94bf7b90d438a50475@ec2-3-216-113-109.compute-1.amazonaws.com:5432/d7tug9k5e7akgn"
 
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
@@ -37,6 +37,20 @@ class Reminder(db.Model):
         self.year = year
         self.text = text
 
+
+class MonthSchema(ma.Schema):
+    class Meta:
+        fields = ("id", "name", "year", "days_in_month", "days_in_previous_month", "start_day")
+
+month_schema = MonthSchema()
+multiple_month_schema = MonthSchema(many=True)
+
+class ReminderSchema(ma.Schema):
+    class Meta:
+        fields = "id", "day", "month", "year", "text"
+
+reminder_schema = ReminderSchema()
+multiple_reminder_schema = ReminderSchema(many=True)
 
 
 if __name__ == "__main__":
