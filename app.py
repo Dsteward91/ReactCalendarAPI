@@ -52,7 +52,31 @@ class ReminderSchema(ma.Schema):
 reminder_schema = ReminderSchema()
 multiple_reminder_schema = ReminderSchema(many=True)
 
+@app.route("/reminder/get", methods=["GET"])
+def get_all_reminders():
+    records = db.session.query(Reminder).all()
+    return jsonify(multiple_reminder_schema.dump(records))
+
+@app.route("/reminder/get/<month>/<year>", methods=["GET"])
+def get_all_reminders():
+    records = db.session.query(Reminder).filter(Reminder.month == month).filter(Reminder.year == year).all()
+    return jsonify(multiple_reminder_schema.dump(records))
+
+@app.route("/reminder/update/<id>", methods=["PUT"])
+def update_reminder(id):
+    record = db.session.query(Reminder).filter(Reminder.id == id).first()
+
+    put_data = request.get_json()
+    text = put_data.get("text")
+
+    record.text = text
+    db.session.commit()
+
+    
+    return jsonify("Remnder Updated")
+
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
-
