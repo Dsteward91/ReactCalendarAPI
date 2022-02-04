@@ -1,12 +1,14 @@
 from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy 
+from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from flask_cors import CORS
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://itxuqhkooddblw:9f893945714a623478a73d2847e6344c2d6d2fc3cebdcd94bf7b90d438a50475@ec2-3-216-113-109.compute-1.amazonaws.com:5432/d7tug9k5e7akgn"
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://ltevboyptgbuwh:c7577e4b4a0c5d1dd85445ead69a28e4028722b7aa243672e6048f2c3297f254@ec2-34-205-46-149.compute-1.amazonaws.com:5432/d25rj7mgtjg0gd"
 
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
+CORS(app)
 
 
 class Month(db.Model):
@@ -31,7 +33,7 @@ class Reminder(db.Model):
     year = db.Column(db.String, nullable=False)
     text = db.Column(db.String, nullable=False)
 
-    def __init__(self, day, mont, year, text):
+    def __init__(self, day, month, year, text):
         self.day = day
         self.month = month
         self.year = year
@@ -47,10 +49,71 @@ multiple_month_schema = MonthSchema(many=True)
 
 class ReminderSchema(ma.Schema):
     class Meta:
-        fields = "id", "day", "month", "year", "text"
+        fields = ("id", "day", "month", "year", "text")
 
 reminder_schema = ReminderSchema()
 multiple_reminder_schema = ReminderSchema(many=True)
+
+
+@app.route("/month/add", methods=["POST"])
+def add_month():
+    post_data = request.get_json()
+    name = post_data["name"]
+    year = post_data["year"]
+    days_in_month = post_data["days_in_month"]
+    days_in_previous_month = post_data["days_in_previous_month"]
+    start_day = post_data["start_day"]
+
+    record = Month(name, year, days_in_month, days_in_previous_month, start_day)
+    db.session.add(record)
+    db.session.commit()
+
+    return jsonify("Month added")
+
+@app.route("/month/add/multiple", methods=["POST"])
+def add_multiple_months():
+    post_data = request.get_json()
+
+    for month_data in post_data:
+        record_check = db.session.query(Month).filter(Month.name == month_data["name"]).filter(Month.year == month_data["year"]).first()
+
+        if record_check is None:
+            name = month_data["name"]
+            year = month_data["year"]
+            days_in_month = month_data["days_in_month"]
+            days_in_previous_month = month_data["days_in_previous_month"]
+            start_day = month_data["start_day"]
+
+            record = Month(name, year, days_in_month, days_in_previous_month, start_day)
+            db.session.add(record)
+            db.session.commit()
+
+    return jsonify("Months added")    
+
+@app.route("/month/get", methods=["GET"])
+def get_all_months():
+    records = db.session.query(Month).all()
+    return jsonify(multiple_month_schema.dump(records))
+
+@app.route("/month/get/<year>", methods=["GET"])
+def get_months_by_year(year):
+    records = db.session.query(Month).filter(Month.year == year).all()
+    return jsonify(multiple_month_schema.dump(records))
+
+
+@app.route("/reminder/add", methods=["POST"])
+def add_reminder():
+    post_data = request.get_json()
+    day = post_data["day"]
+    month = post_data["month"]
+    year = post_data["year"]
+    text = post_data["text"]
+
+    record = Reminder(day, month, year, text)
+    db.session.add(record)
+    db.session.commit()
+
+    return jsonify("Reminder added")
 
 @app.route("/reminder/get", methods=["GET"])
 def get_all_reminders():
@@ -58,7 +121,7 @@ def get_all_reminders():
     return jsonify(multiple_reminder_schema.dump(records))
 
 @app.route("/reminder/get/<month>/<year>", methods=["GET"])
-def get_all_reminders():
+def get_reminders_by_month(month, year):
     records = db.session.query(Reminder).filter(Reminder.month == month).filter(Reminder.year == year).all()
     return jsonify(multiple_reminder_schema.dump(records))
 
@@ -73,13 +136,12 @@ def update_reminder(id):
         record.text = text
         db.session.commit()
 
-    
-    return jsonify("Reminder Updated")
+    return jsonify("Reminder updated")
 
 @app.route("/reminder/delete/<id>", methods=["DELETE"])
 def delete_reminder(id):
     record = db.session.query(Reminder).filter(Reminder.id == id).first()
-
+    
     db.session.delete(record)
     db.session.commit()
 
